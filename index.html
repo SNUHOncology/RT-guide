@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>치료실 찾아가기</title>
+<style>
+/* 레이아웃: 세로 사진 한 장이 화면 전체. 위쪽 천장 부분에 어두운 띠(아래로 갈수록 투명)를 깔고
+   그 위에 번호와 안내 문구, 아래 1/3 바닥면에만 로드뷰처럼 눕힌 화살표. 가운데는 비워 둔다. */
+:root {
+  --ink: #0b1112;
+  --paper: #f6faf8;
+  --paper-soft: rgba(246, 250, 248, 0.16);
+  --glass: rgba(9, 15, 16, 0.62);
+  --glass-line: rgba(246, 250, 248, 0.18);
+  --track: rgba(246, 250, 248, 0.3);
+  --scrim-top: rgba(5, 10, 11, 0.74);
+  --scrim-mid: rgba(5, 10, 11, 0.42);
+  --scrim-none: rgba(5, 10, 11, 0);
+  --text-shade: rgba(0, 0, 0, 0.6);
+  --edge: rgba(8, 14, 15, 0.42);
+  --shade: rgba(0, 0, 0, 0.46);
+  --guide: #2fae8c;
+  --font-ui: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+  color-scheme: dark;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+[hidden] { display: none !important; }
+html { height: 100%; box-sizing: border-box; overflow: hidden; background: var(--ink); }
+body {
+  height: 100%; margin: 0; overflow: hidden;
+  background: var(--ink); color: var(--paper);
+  font-family: var(--font-ui);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.stage {
+  position: relative; height: 100%; width: 100%; max-width: 62.5vh;
+  margin-inline: auto; overflow: hidden; background: var(--ink);
+  touch-action: manipulation;
+}
+.shot {
+  position: absolute; inset: 0; width: 100%; height: 100%; max-width: none;
+  display: block; object-fit: cover; backface-visibility: hidden;
+  will-change: transform, opacity; pointer-events: none;
+}
+
+/* 위: 진행 막대, 번호, 안내 문구 */
+.hud {
+  position: absolute; z-index: 5; top: 0; left: 0; right: 0;
+  padding: 12px 16px 40px;
+  display: flex; flex-direction: column; gap: 10px;
+  background: linear-gradient(to bottom, var(--scrim-top) 0%, var(--scrim-mid) 58%, var(--scrim-none) 100%);
+  pointer-events: none;
+}
+.track { width: 100%; height: 4px; border-radius: 2px; overflow: hidden; background: var(--track); }
+.track i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--paper); transition: width .35s ease; }
+.toprow { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.count {
+  flex: none; margin: 0; padding: 5px 11px; border-radius: 999px;
+  background: var(--glass); border: 1px solid var(--glass-line);
+  font: 500 14px/1 var(--font-ui); font-variant-numeric: tabular-nums;
+  display: flex; align-items: baseline; gap: 4px;
+}
+.count b { font-weight: 700; font-size: 16px; }
+.count .of { opacity: .6; }
+.fname {
+  flex: 0 1 auto; min-width: 0; margin: 0; padding: 4px 9px; border-radius: 8px;
+  background: var(--glass); border: 1px solid var(--glass-line);
+  font: 500 12px/1.3 var(--font-ui);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cap {
+  margin: 0; max-width: 30em;
+  font-weight: 700; font-size: clamp(24px, 7vw, 28px); line-height: 1.38; letter-spacing: -0.01em;
+  color: var(--paper); text-shadow: 0 1px 2px var(--text-shade), 0 0 14px var(--text-shade);
+  word-break: keep-all; overflow-wrap: anywhere; text-wrap: balance;
+}
+
+/* 아래: 바닥에 눕힌 화살표 */
+.ground {
+  position: absolute; z-index: 4; left: 50%; bottom: 6px;
+  width: min(100%, 520px); max-width: 100%; aspect-ratio: 400 / 320;
+  transform: translateX(-50%);
+}
+.ground svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.ground svg, .arrive, .cap { transition: opacity .22s ease; }
+.stage.fading .ground svg, .stage.fading .arrive, .stage.fading .cap { opacity: 0; transition-duration: .1s; }
+.a-shadow { fill: var(--shade); }
+.a-edge { fill: var(--edge); stroke: var(--edge); stroke-width: 12; stroke-linejoin: round; }
+.a-body { fill: var(--paper); stroke: var(--paper); stroke-width: 6; stroke-linejoin: round; }
+.arrow.back { opacity: .6; }
+.arrow.main { animation: breathe 1.9s ease-in-out infinite; }
+.arrow.main.shake { animation: shake .55s ease-in-out 2; }
+@keyframes breathe { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(var(--nx, 0px), var(--ny, -6px)); } }
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0); }
+  35% { transform: translate(calc(var(--nx, 0px) * 2.4), calc(var(--ny, -6px) * 2.4)); }
+  65% { transform: translate(0, 0); }
+}
+.g-fill { fill: var(--paper-soft); }
+.g-edge { fill: none; stroke: var(--edge); stroke-width: 9; }
+.g-line { fill: none; stroke: var(--paper); stroke-width: 4; }
+.hit {
+  position: absolute; margin: 0; padding: 0; border: 0; border-radius: 28px;
+  background: transparent; cursor: pointer; touch-action: manipulation;
+}
+.hit:focus-visible { outline: 3px solid var(--paper); outline-offset: -3px; box-shadow: inset 0 0 0 6px var(--edge); }
+.arrive {
+  position: absolute; left: 0; right: 0; top: 18%;
+  display: flex; justify-content: center; pointer-events: none;
+}
+.pill {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 9px 22px 9px 9px; border-radius: 999px;
+  background: var(--paper); color: var(--ink); box-shadow: 0 10px 26px var(--shade);
+  font: 700 25px/1 var(--font-ui); letter-spacing: .04em;
+  animation: pop .5s cubic-bezier(.2, 1.3, .35, 1) both;
+}
+.tick { position: relative; flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--guide); }
+.tick::after {
+  content: ""; position: absolute; left: 13px; top: 7px; width: 8px; height: 16px;
+  border: solid var(--paper); border-width: 0 4px 4px 0; transform: rotate(45deg);
+}
+@keyframes pop { from { transform: scale(.7); opacity: 0; } to { transform: none; opacity: 1; } }
+.hint {
+  position: absolute; left: 50%; bottom: 100%; margin: 0;
+  transform: translate(-50%, -4px);
+  width: max-content; max-width: calc(100% - 32px);
+  padding: 11px 16px; border-radius: 14px;
+  background: var(--glass); border: 1px solid var(--glass-line);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  font: 500 16px/1.45 var(--font-ui); text-align: center; text-wrap: balance;
+  pointer-events: none;
+}
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; margin: -1px; }
+@media (prefers-reduced-motion: reduce) {
+  .arrow.main, .arrow.main.shake, .pill { animation: none; }
+  .track i { transition: none; }
+}
+</style>
+</head>
+<body>
+<main class="stage" id="stage">
+  <img class="shot" id="shotA" alt="" draggable="false">
+  <img class="shot" id="shotB" alt="" draggable="false">
+
+  <header class="hud">
+    <div class="track" aria-hidden="true"><i id="bar"></i></div>
+    <div class="toprow">
+      <p class="count"><b id="cur">1</b><span class="of">/</span><span id="tot">0</span></p>
+      <p class="fname" id="fname" hidden></p>
+    </div>
+    <p class="cap" id="cap"></p>
+  </header>
+
+  <div class="ground" id="ground">
+    <svg viewBox="0 0 400 320" aria-hidden="true" focusable="false">
+      <defs>
+        <filter id="blur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="6"/></filter>
+      </defs>
+      <g class="goal" id="goal">
+        <path class="g-fill"/><path class="g-edge"/><path class="g-line"/>
+      </g>
+      <g class="arrow back" id="backArrow">
+        <path class="a-shadow" transform="translate(0 7)" filter="url(#blur)"/><path class="a-edge"/><path class="a-body"/>
+      </g>
+      <g class="arrow main" id="mainArrow">
+        <path class="a-shadow" transform="translate(0 7)" filter="url(#blur)"/><path class="a-edge"/><path class="a-body"/>
+      </g>
+    </svg>
+    <button class="hit" id="backBtn" type="button" aria-label="이전 사진"></button>
+    <button class="hit" id="nextBtn" type="button" aria-label="다음 사진"></button>
+    <div class="arrive" id="arrive" hidden><span class="pill"><span class="tick" aria-hidden="true"></span>도착</span></div>
+    <p class="hint" id="hint" hidden>바닥의 화살표를 누르면<br>다음 사진으로 넘어가요</p>
+  </div>
+
+  <p class="sr" id="live" aria-live="polite"></p>
+</main>
+
+<script>
+/* 파이썬이 채워 넣는 값 */
+const ROUTE = ["straight", "right", "right", "straight", "left", "straight", "straight", "right", "straight", "straight", "straight", "left", "straight", "straight", "straight", "straight", "straight", "straight", "straight", "left", "straight", "left", "arrive"];        // 사진마다 방향: straight / left / right / arrive
+const CAPTIONS = ["자동문을 통과하세요", "오른쪽으로 꺾으세요", "한 번 더 오른쪽으로 꺾으세요", "직진하세요", "왼쪽으로 꺾으세요", "우체국을 지나 직진하세요", "계속 직진하세요", "오른쪽으로 꺾으세요", "통로로 직진하세요", "계속 직진하세요", "복도가 나옵니다", "복도에서 왼쪽으로 가세요", "직진하세요", "직진하세요", "계속 직진하세요", "복도를 따라 직진하세요", "린넨실을 지나 직진하세요", "노동조합을 지나 계속 직진하세요", "사거리가 나올 겁니다", "사거리에서 왼쪽으로 꺾으세요", "10걸음 정도 직진하시면 방사선치료센터 1, 2치료실이 보입니다", "왼쪽 문으로 들어가 주세요", "도착입니다. 치료 잘 받으세요!"];  // 사진마다 위쪽 안내 문구
+const PHOTOS = ["%EC%82%AC%EC%A7%84/1.jpg", "%EC%82%AC%EC%A7%84/2.jpg", "%EC%82%AC%EC%A7%84/3.jpg", "%EC%82%AC%EC%A7%84/4.jpg", "%EC%82%AC%EC%A7%84/5.jpg", "%EC%82%AC%EC%A7%84/6.jpg", "%EC%82%AC%EC%A7%84/7.jpg", "%EC%82%AC%EC%A7%84/8.jpg", "%EC%82%AC%EC%A7%84/9.jpg", "%EC%82%AC%EC%A7%84/10.jpg", "%EC%82%AC%EC%A7%84/11.jpg", "%EC%82%AC%EC%A7%84/12.jpg", "%EC%82%AC%EC%A7%84/13.jpg", "%EC%82%AC%EC%A7%84/14.jpg", "%EC%82%AC%EC%A7%84/15.jpg", "%EC%82%AC%EC%A7%84/16.jpg", "%EC%82%AC%EC%A7%84/17.jpg", "%EC%82%AC%EC%A7%84/18.jpg", "%EC%82%AC%EC%A7%84/19.jpg", "%EC%82%AC%EC%A7%84/20.jpg", "%EC%82%AC%EC%A7%84/21.jpg", "%EC%82%AC%EC%A7%84/22.jpg", "%EC%82%AC%EC%A7%84/23.jpg"];      // 사진 경로 (없는 칸은 임시 그림)
+const NAMES = ["1.jpg", "2.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg", "7.jpg", "8.jpg", "9.jpg", "10.jpg", "11.jpg", "12.jpg", "13.jpg", "14.jpg", "15.jpg", "16.jpg", "17.jpg", "18.jpg", "19.jpg", "20.jpg", "21.jpg", "22.jpg", "23.jpg"];        // 사진 파일 이름 (확인용 표시)
+const SHOW_NAME = false;
+
+const LOCK_MS = 500;   // 한 장 넘긴 뒤 터치를 무시하는 시간
+const MOVE_MS = 420;   // 넘어가는 효과 길이
+
+const N = ROUTE.length;
+const SAY = { straight: '직진', left: '왼쪽으로', right: '오른쪽으로', arrive: '도착' };
+const WORD = { straight: '직진', left: '좌회전', right: '우회전', arrive: '도착' };
+const hasNext = i => i < N - 1 && ROUTE[i] !== 'arrive';
+
+const $ = id => document.getElementById(id);
+const el = {
+  stage: $('stage'), bar: $('bar'), cur: $('cur'), tot: $('tot'), fname: $('fname'), cap: $('cap'),
+  main: $('mainArrow'), back: $('backArrow'), goal: $('goal'),
+  next: $('nextBtn'), prev: $('backBtn'), arrive: $('arrive'), hint: $('hint'), live: $('live'),
+};
+const shots = [$('shotA'), $('shotB')];
+let front = 0;
+const state = { i: 0, lock: false, moved: false };
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+/* ── 바닥 화살표: 바닥면 좌표(좌우 u, 앞 v, 단위 m)를 화면에 투영 ── */
+const VIEW = { w: 400, h: 320 };
+const CAM = { cx: 200, hy: -130, f: 540, h: 1.45 };
+const project = (u, v) => [CAM.cx + CAM.f * u / v, CAM.hy + CAM.f * CAM.h / v];
+const CHEVRON = [[0, 0.55], [0.48, -0.42], [0, -0.12], [-0.48, -0.42]];
+const POSE = {
+  straight: { u: 0,    v: 3.1,  deg: 0,   s: 0.95, nx: 0,  ny: -6 },
+  left:     { u: -0.4, v: 3.0,  deg: -90, s: 0.95, nx: -8, ny: 0 },
+  right:    { u: 0.4,  v: 3.0,  deg: 90,  s: 0.95, nx: 8,  ny: 0 },
+  back:     { u: 0,    v: 2.05, deg: 180, s: 0.36 },
+};
+function arrowPoints(p) {
+  const t = p.deg * Math.PI / 180;
+  const d = [Math.sin(t), Math.cos(t)], r = [Math.cos(t), -Math.sin(t)];
+  return CHEVRON.map(([a, b]) => project(p.u + p.s * (a * r[0] + b * d[0]), p.v + p.s * (a * r[1] + b * d[1])));
+}
+const pathOf = pts => 'M' + pts.map(([x, y]) => x.toFixed(1) + ' ' + y.toFixed(1)).join(' L') + ' Z';
+const boxOf = pts => {
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+};
+const PAD = 20;
+const grow = b => ({
+  x0: Math.max(0, b.x0 - PAD), x1: Math.min(VIEW.w, b.x1 + PAD),
+  y0: Math.max(0, b.y0 - PAD), y1: Math.min(VIEW.h, b.y1 + PAD),
+});
+function setPaths(group, d) { group.querySelectorAll('path').forEach(p => p.setAttribute('d', d)); }
+function placeHit(btn, b) {
+  btn.style.left = (b.x0 / VIEW.w * 100) + '%';
+  btn.style.top = (b.y0 / VIEW.h * 100) + '%';
+  btn.style.width = ((b.x1 - b.x0) / VIEW.w * 100) + '%';
+  btn.style.height = ((b.y1 - b.y0) / VIEW.h * 100) + '%';
+}
+const backPts = arrowPoints(POSE.back);
+const backBox = boxOf(backPts);
+setPaths(el.back, pathOf(backPts));
+(() => {
+  const ring = [];
+  for (let k = 0; k < 48; k++) { const a = k / 48 * Math.PI * 2; ring.push(project(0.5 * Math.cos(a), 3.0 + 0.5 * Math.sin(a))); }
+  setPaths(el.goal, pathOf(ring));
+})();
+
+/* ── 임시 그림: 사진이 없는 칸은 번호가 적힌 복도 ── */
+const FONT = getComputedStyle(document.documentElement).getPropertyValue('--font-ui').trim() || 'sans-serif';
+function seeded(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function makePlaceholder(i, label) {
+  const dir = ROUTE[i];
+  const W = 900, H = 1600, VX = 450, VY = 768, F = 1000;
+  const FY = -1.45, CY = 1.25, HW = 1.25, NEAR = 0.25;
+  const turn = dir === 'left' ? -1 : dir === 'right' ? 1 : 0;
+  const Z1 = 3.0, Z2 = 6.2;
+  const END = turn ? Z2 : dir === 'arrive' ? 5.4 : 34;
+  const rnd = seeded(4049 + i * 7919);
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  const P = (x, y, z) => [VX + F * x / z, VY - F * y / z];
+  const fill = (pts, style) => {
+    g.beginPath(); pts.forEach(([x, y], k) => k ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath();
+    g.fillStyle = style; g.fill();
+  };
+  const strip = (x, ya, yb, za, zb) => [P(x, yb, za), P(x, yb, zb), P(x, ya, zb), P(x, ya, za)];
+  const line = (a, b) => { g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke(); };
+
+  g.fillStyle = '#c9d1d0'; g.fillRect(0, 0, W, H);
+  const cg = g.createLinearGradient(0, 0, 0, VY); cg.addColorStop(0, '#d6dcda'); cg.addColorStop(1, '#eef1ef');
+  fill([P(-HW, CY, NEAR), P(HW, CY, NEAR), P(HW, CY, END), P(-HW, CY, END)], cg);
+  const fg = g.createLinearGradient(0, VY, 0, H); fg.addColorStop(0, '#dcd7cc'); fg.addColorStop(1, '#a8a295');
+  fill([P(-HW, FY, NEAR), P(HW, FY, NEAR), P(HW, FY, END), P(-HW, FY, END)], fg);
+  g.strokeStyle = 'rgba(70, 64, 52, 0.13)'; g.lineWidth = 2;
+  for (let z = 1; z < END; z += 0.9) line(P(-HW, FY, z), P(HW, FY, z));
+  for (const x of [-0.62, 0, 0.62]) line(P(x, FY, NEAR), P(x, FY, END));
+
+  g.save(); g.shadowColor = 'rgba(255, 250, 230, 0.9)'; g.shadowBlur = 26;
+  for (let z = 2.4 + (i * 1.15) % 3; z + 1 < END; z += 3) {
+    fill([P(-0.32, CY, z), P(0.32, CY, z), P(0.32, CY, z + 0.8), P(-0.32, CY, z + 0.8)], '#fffdf4');
+  }
+  g.restore();
+
+  for (const s of [-1, 1]) {
+    const x = s * HW, stop = turn === s ? Z1 : END;
+    fill(strip(x, FY, CY, NEAR, stop), s < 0 ? '#d0d8d6' : '#dce2e0');
+    fill(strip(x, -0.56, -0.48, NEAR, stop), '#a6b8b8');
+    fill(strip(x, FY, FY + 0.12, NEAR, stop), '#8c9695');
+    for (let z = 2.2 + rnd() * 1.6; z + 1.05 < stop - 1.2; z += 2.6 + rnd() * 2.2) {
+      fill(strip(x, FY, FY + 2.1, z, z + 1.05), rnd() < 0.35 ? '#c2a27c' : '#b5c3c9');
+      g.strokeStyle = 'rgba(64, 80, 86, 0.55)'; g.lineWidth = 3; g.stroke();
+      fill(strip(x, 0.2, 0.38, z + 1.2, z + 1.5), '#3d5a5f');
+    }
+  }
+  if (turn) {
+    const x = turn * HW;
+    const A = P(x, FY, Z1), B = P(x, FY, Z2), A2 = P(x, CY, Z1), B2 = P(x, CY, Z2);
+    const left = Math.min(A2[0], B2[0]), wid = Math.abs(B2[0] - A2[0]);
+    fill([A2, B2, [A2[0], B2[1]]], '#e3e7e5');
+    g.fillStyle = '#f4f7f4'; g.fillRect(left, B2[1], wid, B[1] - B2[1]);
+    const r1 = P(x, -0.48, Z2), r2 = P(x, -0.56, Z2);
+    g.fillStyle = '#a6b8b8'; g.fillRect(left, r1[1], wid, r2[1] - r1[1]);
+    fill([A, B, [A[0], B[1]]], '#c9c3b6');
+  }
+  const E1 = P(-HW, CY, END), E2 = P(HW, FY, END);
+  g.fillStyle = turn ? '#d7dedb' : '#cbd3d1'; g.fillRect(E1[0], E1[1], E2[0] - E1[0], E2[1] - E1[1]);
+  if (dir === 'arrive') {
+    const D1 = P(-0.78, FY + 2.2, END), D2 = P(0.78, FY, END);
+    g.fillStyle = '#9fb6bf'; g.fillRect(D1[0], D1[1], D2[0] - D1[0], D2[1] - D1[1]);
+    g.strokeStyle = 'rgba(48, 66, 72, 0.65)'; g.lineWidth = 5; g.strokeRect(D1[0], D1[1], D2[0] - D1[0], D2[1] - D1[1]);
+    line(P(0, FY + 2.2, END), P(0, FY, END));
+    for (const hx of [-0.09, 0.09]) { g.fillStyle = '#5d6f75'; const h1 = P(hx - 0.02, -0.35, END), h2 = P(hx + 0.02, -0.65, END); g.fillRect(h1[0], h1[1], h2[0] - h1[0], h2[1] - h1[1]); }
+    const S1 = P(-0.6, 1.12, END), S2 = P(0.6, 0.86, END);
+    g.fillStyle = '#2c5a60'; g.fillRect(S1[0], S1[1], S2[0] - S1[0], S2[1] - S1[1]);
+    g.fillStyle = '#f2f6f5'; g.font = `700 ${Math.round((S2[1] - S1[1]) * 0.6)}px ${FONT}`;
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('치료실', VX, (S1[1] + S2[1]) / 2 + 2);
+  }
+  const vg = g.createRadialGradient(VX, VY, 220, VX, VY, 1150);
+  vg.addColorStop(0, 'rgba(0, 0, 0, 0)'); vg.addColorStop(1, 'rgba(0, 0, 0, 0.3)');
+  g.fillStyle = vg; g.fillRect(0, 0, W, H);
+
+  const text = label || `${i + 1}번 사진 자리`;
+  g.font = `700 46px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const bw = g.measureText(text).width + 76, bh = 94, bx = VX - bw / 2, by = 520;
+  g.beginPath();
+  if (g.roundRect) g.roundRect(bx, by, bw, bh, 22); else g.rect(bx, by, bw, bh);
+  g.fillStyle = 'rgba(250, 252, 251, 0.8)'; g.fill();
+  g.setLineDash([12, 10]); g.strokeStyle = 'rgba(38, 57, 59, 0.5)'; g.lineWidth = 3; g.stroke(); g.setLineDash([]);
+  g.fillStyle = '#26393b'; g.fillText(text, VX, by + bh / 2 + 2);
+  return c.toDataURL('image/jpeg', 0.82);
+}
+
+const made = new Map();
+function srcFor(i) {
+  if (PHOTOS[i]) return PHOTOS[i];
+  if (!made.has(i)) made.set(i, makePlaceholder(i));
+  return made.get(i);
+}
+async function load(img, i) {
+  img.src = srcFor(i);
+  try { await Promise.race([img.decode(), wait(4000)]); }
+  catch (e) {   // 사진 파일을 못 열면 임시 그림으로
+    img.src = makePlaceholder(i, `${i + 1}번 사진을 열 수 없어요`);
+    try { await img.decode(); } catch (e2) { /* 그대로 둔다 */ }
+  }
+}
+function preload(i) {
+  [i + 1, i + 2, i - 1].forEach((k, n) => {
+    if (k < 0 || k >= N) return;
+    setTimeout(() => { if (PHOTOS[k]) { const im = new Image(); im.src = PHOTOS[k]; } else srcFor(k); }, 80 + n * 60);
+  });
+}
+
+/* ── 화면 갱신 ── */
+function render() {
+  const i = state.i, dir = ROUTE[i], more = hasNext(i), caption = CAPTIONS[i] || '';
+  el.cur.textContent = i + 1;
+  el.tot.textContent = N;
+  el.bar.style.width = ((i + 1) / N * 100) + '%';
+  el.cap.textContent = caption;
+  el.cap.hidden = !caption;
+  if (SHOW_NAME) {
+    el.fname.hidden = false;
+    el.fname.textContent = `${NAMES[i] || '임시 그림'} · ${WORD[dir]}`;
+  }
+  let back = grow(backBox);
+  el.main.style.display = more ? '' : 'none';
+  el.next.hidden = !more;
+  if (more) {
+    const p = POSE[dir], pts = arrowPoints(p), b = boxOf(pts);
+    setPaths(el.main, pathOf(pts));
+    el.main.style.setProperty('--nx', p.nx + 'px');
+    el.main.style.setProperty('--ny', p.ny + 'px');
+    const main = grow(b);
+    if (main.y1 > back.y0) { const mid = (b.y1 + backBox.y0) / 2; main.y1 = mid - 3; back.y0 = mid + 3; }
+    placeHit(el.next, main);
+    el.next.setAttribute('aria-label', `다음 사진, ${SAY[dir]}`);
+  }
+  el.back.style.display = i > 0 ? '' : 'none';
+  el.prev.hidden = i === 0;
+  placeHit(el.prev, back);
+  el.goal.style.display = more ? 'none' : '';
+  el.arrive.hidden = more;
+  shots[front].alt = `${i + 1}번째 길 사진`;
+  el.live.textContent = `${i + 1}번째 사진. ${caption || (more ? SAY[dir] : '도착')}`;
+}
+
+/* ── 넘어가기 ── */
+function swap(cur, nxt, kind, fwd) {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  nxt.style.visibility = 'visible';
+  cur.style.zIndex = 2; nxt.style.zIndex = 1;
+  const opt = { duration: reduce ? 180 : MOVE_MS, easing: 'cubic-bezier(.3, .1, .25, 1)', fill: 'forwards' };
+  const runs = [];
+  if (reduce) {
+    runs.push(cur.animate([{ opacity: 1 }, { opacity: 0 }], opt));
+  } else if (kind === 'left' || kind === 'right') {
+    const s = (kind === 'left' ? 1 : -1) * (fwd ? 1 : -1);   // 왼쪽으로 돌면 풍경은 오른쪽으로 흐른다
+    runs.push(cur.animate([{ transform: 'translateX(0)', opacity: 1 }, { transform: `translateX(${36 * s}%)`, opacity: 0 }], opt));
+    runs.push(nxt.animate([{ transform: `translateX(${-24 * s}%)` }, { transform: 'translateX(0)' }], opt));
+  } else if (fwd) {
+    runs.push(cur.animate([{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(1.3)', opacity: 0 }], opt));
+  } else {
+    cur.style.zIndex = 1; nxt.style.zIndex = 2;
+    runs.push(nxt.animate([{ transform: 'scale(1.3)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], opt));
+    runs.push(cur.animate([{ transform: 'scale(1)' }, { transform: 'scale(.94)' }], opt));
+  }
+  return Promise.all(runs.map(a => a.finished)).then(() => {
+    cur.style.visibility = 'hidden';
+    cur.style.zIndex = 1; nxt.style.zIndex = 2;
+    runs.forEach(a => a.cancel());
+  });
+}
+
+async function go(delta) {
+  if (state.lock) return;
+  const from = state.i, to = from + delta;
+  if (to < 0 || to >= N || (delta > 0 && !hasNext(from))) return;
+  state.lock = true;
+  const t0 = performance.now();
+  if (!state.moved) { state.moved = true; keepAwake(); }
+  hideHint();
+  el.stage.classList.add('fading');
+
+  const cur = shots[front], nxt = shots[1 - front];
+  await load(nxt, to);
+  await swap(cur, nxt, delta > 0 ? ROUTE[from] : ROUTE[to], delta > 0);
+
+  front = 1 - front;
+  state.i = to;
+  render();
+  el.stage.classList.remove('fading');
+  remember();
+  preload(to);
+
+  const left = LOCK_MS - (performance.now() - t0);
+  if (left > 0) await wait(left);
+  state.lock = false;
+}
+
+/* ── 안내 말풍선, 화살표 흔들기 ── */
+let hintTimer = 0;
+function showHint(ms) {
+  clearTimeout(hintTimer);
+  el.hint.hidden = false;
+  if (ms) hintTimer = setTimeout(() => { el.hint.hidden = true; }, ms);
+}
+function hideHint() { clearTimeout(hintTimer); el.hint.hidden = true; }
+function nudge() {
+  if (state.lock || !hasNext(state.i)) return;
+  el.main.classList.remove('shake');
+  void el.main.getBoundingClientRect();
+  el.main.classList.add('shake');
+  if (state.moved) showHint(2400);
+}
+el.main.addEventListener('animationend', e => { if (e.animationName === 'shake') el.main.classList.remove('shake'); });
+
+/* ── 화면 켜 두기, 위치 기억 (지원되는 곳에서만) ── */
+let wake = null;
+async function keepAwake() {
+  try {
+    if ('wakeLock' in navigator && !wake) {
+      wake = await navigator.wakeLock.request('screen');
+      wake.addEventListener('release', () => { wake = null; });
+    }
+  } catch (e) { wake = null; }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && state.moved) keepAwake(); });
+
+const KEY = 'route-step';
+function remember() {
+  try { sessionStorage.setItem(KEY, JSON.stringify({ i: state.i, n: N, t: Date.now() })); } catch (e) { /* 없어도 된다 */ }
+}
+function restore() {
+  try {
+    const s = JSON.parse(sessionStorage.getItem(KEY) || 'null');
+    if (s && s.n === N && Date.now() - s.t < 30 * 60 * 1000 && s.i >= 0 && s.i < N) state.i = s.i;
+  } catch (e) { /* 처음부터 */ }
+}
+
+/* ── 입력 ── */
+el.next.addEventListener('click', () => go(1));
+el.prev.addEventListener('click', () => go(-1));
+el.stage.addEventListener('click', e => { if (!e.target.closest('button')) nudge(); });
+document.addEventListener('keydown', e => {
+  const onButton = e.target.closest && e.target.closest('button');
+  if (onButton && (e.key === 'Enter' || e.key === ' ')) return;
+  if (['ArrowRight', 'ArrowUp', 'PageDown', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); go(1); }
+  else if (['ArrowLeft', 'ArrowDown', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); go(-1); }
+});
+
+/* ── 시작 ── */
+restore();
+shots[0].style.visibility = 'visible'; shots[0].style.zIndex = 2;
+shots[1].style.visibility = 'hidden'; shots[1].style.zIndex = 1;
+load(shots[0], state.i);
+render();
+if (state.i === 0) showHint();
+preload(state.i);
+</script>
+</body>
+</html>
