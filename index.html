@@ -572,19 +572,27 @@ function drawMarks() {
   }
   placeCaption();
 }
-/* 깜빡이는 간판을 문구 상자가 가리면, 상자를 간판 위로(자리가 없으면 아래로) 옮긴다 */
+/* 깜빡이는 간판을 문구 상자가 가리면, 상자를 간판 위로 올린다.
+   위에 자리가 모자라면 글씨를 조금씩 줄여서(최대 40%까지) 위에 맞춘다. */
 function placeCaption() {
   el.cap.style.top = '';
+  el.cap.style.fontSize = '';
   const marks = el.marks.querySelectorAll('.mark:not(.draft)');
   if (!marks.length || el.cap.hidden) return;
-  let top = Infinity, bottom = -Infinity;
-  marks.forEach(m => { const r = m.getBoundingClientRect(); top = Math.min(top, r.top); bottom = Math.max(bottom, r.bottom); });
-  const cap = el.cap.getBoundingClientRect(), stage = el.stage.getBoundingClientRect();
-  const gap = 12;
-  if (cap.bottom + gap <= top || cap.top >= bottom + gap) return;
-  const ceiling = el.stage.querySelector('.toprow').getBoundingClientRect().bottom + 8;
-  const above = top - gap - cap.height;
-  el.cap.style.top = ((above >= ceiling ? above : bottom + gap) - stage.top) + 'px';
+  let top = Infinity;
+  marks.forEach(m => { top = Math.min(top, m.getBoundingClientRect().top); });
+  const stage = el.stage.getBoundingClientRect();
+  const gap = 10;
+  if (el.cap.getBoundingClientRect().bottom + gap <= top) return;
+  const ceiling = el.stage.querySelector('.toprow').getBoundingClientRect().bottom + 6;
+  const room = top - gap - ceiling;
+  const base = parseFloat(getComputedStyle(el.cap).fontSize);
+  for (let size = base; el.cap.getBoundingClientRect().height > room && size > base * 0.6; ) {
+    size *= 0.94;
+    el.cap.style.fontSize = size.toFixed(1) + 'px';
+  }
+  const h = el.cap.getBoundingClientRect().height;
+  el.cap.style.top = (Math.max(ceiling, top - gap - h) - stage.top) + 'px';
 }
 window.addEventListener('resize', placeCaption);
 
