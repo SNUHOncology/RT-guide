@@ -74,12 +74,12 @@ body {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .cap {
-  position: absolute; z-index: 5; left: 50%; top: 16%;
+  position: absolute; z-index: 5; left: 50%; top: 20%;
   transform: translateX(-50%);
   box-sizing: border-box; width: max-content; max-width: calc(100% - 32px); margin: 0;
   padding: 12px 18px 14px; border-radius: 16px;
   background: var(--cap-bg); box-shadow: 0 6px 18px var(--shade);
-  font-weight: 800; font-size: min(40px, 10.26vw); line-height: 1.32; letter-spacing: -0.01em;
+  font-weight: 800; font-size: min(30px, 7.69vw); line-height: 1.32; letter-spacing: -0.01em;
   color: var(--cap-ink); text-align: center; text-shadow: 0 1px 2px var(--text-shade);
   word-break: keep-all; overflow-wrap: anywhere; text-wrap: balance;
   pointer-events: none;
@@ -234,19 +234,19 @@ body {
 
 <script>
 /* 파이썬이 채워 넣는 값 */
-const ROUTE = ["straight", "right", "straight", "left", "straight", "straight", "right", "straight", "straight", "straight", "left", "straight", "straight", "straight", "straight", "straight", "straight", "left", "straight", "left", "arrive"];        // 사진마다 방향: straight / left / right / arrive
-const CAPTIONS = ["자동문을 통과하세요", "오른쪽으로 꺾으세요", "직진하세요", "왼쪽으로 꺾으세요", "우체국을 지나 직진하세요", "계속 직진하세요", "오른쪽으로 꺾으세요", "통로로 직진하세요", "계속 직진하세요", "복도가 나옵니다", "복도에서 왼쪽으로 가세요", "직진하세요", "직진하세요", "계속 직진하세요", "복도를 따라 직진하세요", "린넨실과 노동조합을 지나 직진하세요", "사거리가 나올 겁니다", "사거리에서 왼쪽으로 꺾으세요", "방사선치료센터 1,2치료실  보입니다", "왼쪽 문으로 들어가 주세요", "도착입니다. 치료 잘 받으세요!"];  // 사진마다 위쪽 안내 문구
-const MARKS = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [[24.3, 29.8, 43.1, 32.9, 43.1, 35.9, 24.3, 33.5], [49.7, 32.4, 77.1, 31.6, 77.2, 35.7, 49.8, 36.5]], [], []];        // 사진마다 깜빡일 곳: [x1,y1,x2,y2] 네모 또는 꼭짓점 4개 (사진 크기 대비 %)
-const PHOTOS = ["%EC%82%AC%EC%A7%84/1.jpg", "%EC%82%AC%EC%A7%84/2.jpg", "%EC%82%AC%EC%A7%84/4.jpg", "%EC%82%AC%EC%A7%84/5.jpg", "%EC%82%AC%EC%A7%84/6.jpg", "%EC%82%AC%EC%A7%84/7.jpg", "%EC%82%AC%EC%A7%84/8.jpg", "%EC%82%AC%EC%A7%84/9.jpg", "%EC%82%AC%EC%A7%84/10.jpg", "%EC%82%AC%EC%A7%84/11.jpg", "%EC%82%AC%EC%A7%84/12.jpg", "%EC%82%AC%EC%A7%84/13.jpg", "%EC%82%AC%EC%A7%84/14.jpg", "%EC%82%AC%EC%A7%84/15.jpg", "%EC%82%AC%EC%A7%84/16.jpg", "%EC%82%AC%EC%A7%84/17.jpg", "%EC%82%AC%EC%A7%84/19.jpg", "%EC%82%AC%EC%A7%84/20.jpg", "%EC%82%AC%EC%A7%84/21.jpg", "%EC%82%AC%EC%A7%84/22.jpg", "%EC%82%AC%EC%A7%84/23.jpg"];      // 사진 경로 (없는 칸은 임시 그림)
-const NAMES = ["1.jpg", "2.jpg", "4.jpg", "5.jpg", "6.jpg", "7.jpg", "8.jpg", "9.jpg", "10.jpg", "11.jpg", "12.jpg", "13.jpg", "14.jpg", "15.jpg", "16.jpg", "17.jpg", "19.jpg", "20.jpg", "21.jpg", "22.jpg", "23.jpg"];        // 사진 파일 이름 (확인용 표시)
+const ROUTE = ["straight", "straight", "sright", "sleft", "straight", "straight", "straight", "sleft", "straight", "sleft", "arrive"];        // 사진마다 방향: straight / left / right / arrive
+const CAPTIONS = ["자동문을 통과하세요", "우체국을 지나쳐가세요", "연결통로를 따라 가세요", "통로를 지나 본관방향으로 가세요", "직진하세요", "계속 직진하세요", "린넨실과 노동조합을따라  지나 직진하세요", "사거리에서 왼쪽으로 꺾으세요", "방사선치료센터 1,2치료실 보입니다", "왼쪽 문으로 들어가 주세요", "도착입니다. 치료 잘받으세요!"];  // 사진마다 위쪽 안내 문구
+const MARKS = [[], [], [[26.7, 39.5, 62.2, 40.0, 62.2, 44.1, 26.7, 43.6]], [[32.8, 40.3, 44.4, 40.3, 44.4, 44.5, 32.8, 44.4]], [], [], [], [], [[24.3, 29.8, 43.1, 32.9, 43.1, 35.9, 24.3, 33.5], [49.7, 32.4, 77.1, 31.6, 77.2, 35.7, 49.8, 36.5]], [], []];        // 사진마다 깜빡일 곳: [x1,y1,x2,y2] 네모 또는 꼭짓점 4개 (사진 크기 대비 %)
+const PHOTOS = ["%EC%82%AC%EC%A7%84/1.jpg", "%EC%82%AC%EC%A7%84/2.jpg", "%EC%82%AC%EC%A7%84/3.jpg", "%EC%82%AC%EC%A7%84/4.jpg", "%EC%82%AC%EC%A7%84/5.jpg", "%EC%82%AC%EC%A7%84/6.jpg", "%EC%82%AC%EC%A7%84/7.jpg", "%EC%82%AC%EC%A7%84/8.jpg", "%EC%82%AC%EC%A7%84/9.jpg", "%EC%82%AC%EC%A7%84/10.jpg", "%EC%82%AC%EC%A7%84/11.jpg"];      // 사진 경로 (없는 칸은 임시 그림)
+const NAMES = ["1.jpg", "2.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg", "7.jpg", "8.jpg", "9.jpg", "10.jpg", "11.jpg"];        // 사진 파일 이름 (확인용 표시)
 const SHOW_NAME = false;
 
 const LOCK_MS = 500;   // 한 장 넘긴 뒤 터치를 무시하는 시간
 const MOVE_MS = 420;   // 넘어가는 효과 길이
 
 const N = ROUTE.length;
-const SAY = { straight: '직진', left: '왼쪽으로', right: '오른쪽으로', arrive: '도착' };
-const WORD = { straight: '직진', left: '좌회전', right: '우회전', arrive: '도착' };
+const SAY = { straight: '직진', left: '왼쪽으로', right: '오른쪽으로', sleft: '앞으로 가다 왼쪽으로', sright: '앞으로 가다 오른쪽으로', arrive: '도착' };
+const WORD = { straight: '직진', left: '좌회전', right: '우회전', sleft: '직진→좌회전', sright: '직진→우회전', arrive: '도착' };
 const hasNext = i => i < N - 1 && ROUTE[i] !== 'arrive';
 
 const $ = id => document.getElementById(id);
@@ -278,6 +278,28 @@ function arrowPoints(p) {
   const d = [Math.sin(t), Math.cos(t)], r = [Math.cos(t), -Math.sin(t)];
   return CHEVRON.map(([a, b]) => project(p.u + p.s * (a * r[0] + b * d[0]), p.v + p.s * (a * r[1] + b * d[1])));
 }
+/* 앞으로 가다 꺾이는 화살표: 바닥에 그린 둥글게 꺾인 띠 + 화살촉 (side -1 왼쪽, 1 오른쪽) */
+const BENT = { w: 0.15, r: 0.4, v0: 2.6, vc: 3.5, base: 0.62, tip: 1.0, head: 0.32 };
+function bentPoints(side) {
+  const { w, r, v0, vc, base, tip, head } = BENT;
+  const k = side < 0 ? 1 : -1;   // 아래 좌표는 왼쪽으로 꺾이는 모양, 오른쪽은 좌우만 뒤집기
+  const arc = (rad, from, to) => {
+    const out = [];
+    for (let n = 0; n <= 8; n++) {
+      const t = (from + (to - from) * n / 8) * Math.PI / 180;
+      out.push([-r + rad * Math.cos(t), vc - r + rad * Math.sin(t)]);
+    }
+    return out;
+  };
+  return [
+    [-w, v0], [w, v0],                        // 앞쪽 끝
+    ...arc(r + w, 0, 90),                     // 바깥쪽 굽은 가장자리
+    [-base, vc + w], [-base, vc + head], [-tip, vc], [-base, vc - head], [-base, vc - w],
+    ...arc(r - w, 90, 0),                     // 안쪽 굽은 가장자리
+  ].map(([u, v]) => project(u * k, v));
+}
+const isBent = dir => dir === 'sleft' || dir === 'sright';
+const turnOf = dir => dir === 'sleft' ? 'left' : dir === 'sright' ? 'right' : dir;
 const pathOf = pts => 'M' + pts.map(([x, y]) => x.toFixed(1) + ' ' + y.toFixed(1)).join(' L') + ' Z';
 const boxOf = pts => {
   const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
@@ -319,7 +341,7 @@ function makePlaceholder(i, label) {
   const dir = ROUTE[i];
   const W = 900, H = 1600, VX = 450, VY = 768, F = 1000;
   const FY = -1.45, CY = 1.25, HW = 1.25, NEAR = 0.25;
-  const turn = dir === 'left' ? -1 : dir === 'right' ? 1 : 0;
+  const turn = turnOf(dir) === 'left' ? -1 : turnOf(dir) === 'right' ? 1 : 0;
   const Z1 = 3.0, Z2 = 6.2;
   const END = turn ? Z2 : dir === 'arrive' ? 5.4 : 34;
   const rnd = seeded(4049 + i * 7919);
@@ -434,10 +456,12 @@ function render() {
   el.main.style.display = more ? '' : 'none';
   el.next.hidden = !more;
   if (more) {
-    const p = POSE[dir], pts = arrowPoints(p), b = boxOf(pts);
+    const bent = isBent(dir);
+    const pts = bent ? bentPoints(dir === 'sleft' ? -1 : 1) : arrowPoints(POSE[dir]), b = boxOf(pts);
+    const nudgeTo = bent ? { nx: dir === 'sleft' ? -7 : 7, ny: -2 } : POSE[dir];
     setPaths(el.main, pathOf(pts));
-    el.main.style.setProperty('--nx', p.nx + 'px');
-    el.main.style.setProperty('--ny', p.ny + 'px');
+    el.main.style.setProperty('--nx', nudgeTo.nx + 'px');
+    el.main.style.setProperty('--ny', nudgeTo.ny + 'px');
     const main = grow(b);
     if (main.y1 > back.y0) { const mid = (b.y1 + backBox.y0) / 2; main.y1 = mid - 3; back.y0 = mid + 3; }
     placeHit(el.next, main);
@@ -461,6 +485,7 @@ function swap(cur, nxt, kind, fwd) {
   cur.style.zIndex = 2; nxt.style.zIndex = 1;
   const opt = { duration: reduce ? 180 : MOVE_MS, easing: 'cubic-bezier(.3, .1, .25, 1)', fill: 'forwards' };
   const runs = [];
+  kind = turnOf(kind);
   if (reduce) {
     runs.push(cur.animate([{ opacity: 1 }, { opacity: 0 }], opt));
   } else if (kind === 'left' || kind === 'right') {
