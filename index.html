@@ -3,12 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>치료실 찾아가기</title>
+<title>찾아가는 길</title>
 <style>
 /* 레이아웃: 세로 사진 한 장이 화면 전체. 맨 위 진행 막대와 번호, 그 아래 화면 가운데에
    어두운 상자에 담은 노란 안내 문구, 아래 1/3 바닥면에만 로드뷰처럼 눕힌 화살표. */
 :root {
   --cap-ink: #FFE14D;
+  --cap-top: 14.0%;
+  --cap-size: min(28px, 7.18vw);
   --cap-bg: rgba(8, 12, 14, 0.72);
   --ink: #0b1112;
   --paper: #f6faf8;
@@ -90,19 +92,19 @@ body {
 }
 .count b { font-weight: 700; font-size: 16px; }
 .count .of { opacity: .6; }
-.fname {
-  flex: 0 1 auto; min-width: 0; margin: 0; padding: 4px 9px; border-radius: 8px;
+.dest {   /* 어디로 가는 길인지 (목적지마다 QR이 달라서 맞게 찍었는지 확인용) */
+  flex: 0 1 auto; min-width: 0; margin: 0; padding: 5px 11px; border-radius: 999px;
   background: var(--glass); border: 1px solid var(--glass-line);
-  font: 500 12px/1.3 var(--font-ui);
+  font: 600 13px/1.2 var(--font-ui);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .cap {
-  position: absolute; z-index: 5; left: 50%; top: 20%;
+  position: absolute; z-index: 5; left: 50%; top: var(--cap-top);
   transform: translateX(-50%);
   box-sizing: border-box; width: max-content; max-width: calc(100% - 32px); margin: 0;
   padding: 12px 18px 14px; border-radius: 16px;
   background: var(--cap-bg); box-shadow: 0 6px 18px var(--shade);
-  font-weight: 800; font-size: min(28px, 7.18vw); line-height: 1.32; letter-spacing: -0.01em;
+  font-weight: 800; font-size: var(--cap-size); line-height: 1.32; letter-spacing: -0.01em;
   color: var(--cap-ink); text-align: center; text-shadow: 0 1px 2px var(--text-shade);
   word-break: keep-all; overflow-wrap: anywhere; text-wrap: balance;
   pointer-events: none;
@@ -120,6 +122,8 @@ body {
   vector-effect: non-scaling-stroke; animation: blink 1.2s ease-in-out infinite;
 }
 .mark.draft { fill: rgba(255, 96, 96, 0.18); stroke: #ff6060; stroke-dasharray: 8 6; animation: none; }
+.mark.sel { stroke: #ff4d4d; fill: rgba(255, 77, 77, 0.25); animation: none; }
+.mark.mosaic { fill: rgba(255, 255, 255, 0.25); stroke: #ffffff; stroke-dasharray: 6 5; animation: none; }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.15; } }
 
 /* 바닥 길 선: 멀어질수록 가늘어지는 하늘색 띠 + 앞으로 흐르는 작은 화살표 */
@@ -139,35 +143,16 @@ body {
 .paths.pulse .route { animation: pulse .45s ease-in-out 2; }
 @keyframes pulse { 50% { fill: rgba(56, 189, 248, 0.85); } }
 
-/* PC에서 E 키: 길 선(점 찍기)·깜빡임(네모 끌기) 그리기 */
+/* 편집기 안 미리보기: 길 선(점 찍기)·깜빡임(네모 끌기)·모자이크 그리기 */
 .stage.editing { cursor: crosshair; touch-action: none; }
-.stage.editing .hit, .stage.editing .route, .stage.editing .prev { pointer-events: none; }
+.stage.editing .hit, .stage.editing .route, .stage.editing .prev, .stage.editing .seek { pointer-events: none; }
 .stage.editing .prev { opacity: .35; }
 .handle circle { fill: #ffffff; stroke: #0b1112; stroke-width: 2px; vector-effect: non-scaling-stroke; }
 .handle text { fill: #0b1112; font-family: var(--font-ui); font-weight: 800; text-anchor: middle; dominant-baseline: central; }
-.editbox {
-  position: absolute; z-index: 8; left: 10px; right: 10px; top: 10px; margin: 0;
-  padding: 10px 12px; border-radius: 14px; background: rgba(9, 15, 16, 0.92); border: 1px solid var(--glass-line);
-  display: flex; flex-direction: column; gap: 7px; font: 500 13px/1.4 var(--font-ui); cursor: default;
+.empty {
+  position: absolute; inset: 0; z-index: 6; margin: 0; display: flex; align-items: center; justify-content: center;
+  padding: 24px; text-align: center; font: 600 18px/1.5 var(--font-ui); color: #c9d3d4; background: var(--ink);
 }
-.editbox.low { top: auto; bottom: 10px; }
-.editbox b { color: var(--cap-ink); }
-.editbox .head { display: flex; align-items: center; gap: 6px; }
-.editbox .head b { flex: 1; min-width: 0; font-size: 14px; }
-.editbox input {
-  width: 100%; box-sizing: border-box; padding: 7px 9px; border-radius: 8px;
-  border: 1px solid var(--glass-line); background: #111a1c; color: var(--paper);
-  font: 500 12px/1.3 Consolas, ui-monospace, monospace; -webkit-user-select: text; user-select: text;
-}
-.editbox .row { display: flex; gap: 6px; }
-.editbox button {
-  flex: 1; padding: 8px 4px; border-radius: 8px; border: 0; white-space: nowrap;
-  background: #2a3436; color: var(--paper); font: 700 13px var(--font-ui); cursor: pointer;
-}
-.editbox .head button { flex: none; padding: 6px 11px; }
-.editbox .mode[aria-pressed="true"] { background: var(--paper); color: var(--ink); }
-.editbox .copy { background: var(--cap-ink); color: #1a1600; }
-.editbox .tip { color: #c9d3d4; }
 
 /* 아래: 바닥에 눕힌 화살표 */
 .ground {
@@ -258,7 +243,7 @@ body {
     </div>
     <div class="toprow">
       <p class="count"><b id="cur">1</b><span class="of">/</span><span id="tot">0</span></p>
-      <p class="fname" id="fname" hidden></p>
+      <p class="dest" id="dest" hidden></p>
     </div>
   </header>
   <p class="seektip" id="seekTip" hidden></p>
@@ -283,55 +268,53 @@ body {
   </div>
   <button class="prev" id="backBtn" type="button" aria-label="이전 사진" hidden>이전</button>
 
-  <section class="editbox" id="editbox" hidden>
-    <div class="head">
-      <b><span id="editStep">1</span>번 사진 고치기</b>
-      <button type="button" class="mode" id="modePath" aria-pressed="true">길 선</button>
-      <button type="button" class="mode" id="modeMarks" aria-pressed="false">깜빡임</button>
-      <button type="button" id="editMove" aria-label="이 상자를 아래로">▼</button>
-    </div>
-    <div class="tip" id="editTip"></div>
-    <input id="editOut" readonly value="" aria-label="길순서.txt 의 이 사진 줄">
-    <div class="row">
-      <button type="button" id="editUndo">하나 지우기</button>
-      <button type="button" id="editClear">모두 지우기</button>
-      <button type="button" class="copy" id="editCopy">이 줄 복사</button>
-      <button type="button" class="copy" id="editCopyAll">전체 복사</button>
-    </div>
-  </section>
-
+  <p class="empty" id="empty" hidden>아직 사진이 없어요.<br>편집기에서 사진을 넣어 주세요.</p>
   <p class="sr" id="live" aria-live="polite"></p>
 </main>
 
 <script>
-/* 파이썬이 채워 넣는 값 */
-const ROUTE = ["straight", "straight", "straight", "sright", "sleft", "straight", "straight", "straight", "sleft", "straight", "arrive"];        // 사진마다 방향: straight / left / right / arrive
-const CAPTIONS = ["자동문을 통과하세요", "화면의 화살표를 따라가세요", "우체국을 지나쳐가세요", "연결통로를 따라 가세요", "통로를 지나 본관방향으로 가세요", "직진하세요", "화살표를 따라 직진하세요", "린넨실과 노동조합을따라  지나 직진하세요", "사거리에서 왼쪽으로 꺾으세요", "화면의 화살표를 따라 왼쪽으로 들어가세요", "도착입니다. 치료 잘받으세요!"];  // 사진마다 위쪽 안내 문구
-const MARKS = [[], [], [], [[26.7, 39.5, 62.2, 40.0, 62.2, 44.1, 26.7, 43.6]], [[32.8, 40.3, 44.4, 40.3, 44.4, 44.5, 32.8, 44.4]], [], [], [], [], [[24.3, 29.8, 43.1, 32.9, 43.1, 35.9, 24.3, 33.5], [49.7, 32.4, 77.1, 31.6, 77.2, 35.7, 49.8, 36.5]], []];        // 사진마다 깜빡일 곳: [x1,y1,x2,y2] 네모 또는 꼭짓점 4개 (사진 크기 대비 %)
-const PATHS = [[[[56.4, 96.0], [55.0, 85.8], [52.7, 76.4], [44.4, 72.5], [39.0, 70.0]]], [[[55.6, 92.0], [43.7, 83.1], [38.8, 76.1], [40.1, 68.5], [42.1, 62.6], [41.8, 57.1], [37.9, 54.4]]], [[[54.7, 94.8], [53.3, 84.1], [51.9, 74.6], [50.1, 67.2], [48.8, 62.7]]], [[[45.8, 94.4], [46.5, 85.1], [54.6, 80.8], [67.0, 80.3], [77.2, 79.8]]], [[[53.2, 92.0], [52.9, 83.7], [52.9, 76.4], [52.7, 70.8], [52.0, 66.3], [48.0, 64.2], [41.6, 62.9], [37.4, 62.7]]], [[[59.5, 91.8], [54.4, 81.2], [47.8, 73.4], [40.6, 67.6], [34.9, 63.8], [30.1, 59.1]]], [[[50.2, 93.6], [48.3, 81.7], [46.3, 69.1], [44.1, 59.8], [43.8, 56.8]]], [[[39.5, 90.1], [40.3, 73.5], [40.2, 62.9], [40.5, 56.0]]], [[[47.0, 90.9], [50.2, 77.2], [51.2, 68.0], [47.9, 61.6], [39.3, 58.9], [29.2, 57.6]]], [[[53.3, 93.6], [54.0, 83.7], [54.5, 74.3], [54.2, 67.0], [47.4, 63.3], [37.7, 60.9], [31.2, 59.1]]], []];        // 사진마다 바닥 길 선: [[x,y], …] 가까운 곳부터 (사진 크기 대비 %)
-const LINE_ONLY = true; // 길 선이 있으면 바닥 화살표 숨기기
-const PHOTOS = ["%EC%82%AC%EC%A7%84/1.jpg", "%EC%82%AC%EC%A7%84/1.5.jpg", "%EC%82%AC%EC%A7%84/2.jpg", "%EC%82%AC%EC%A7%84/3.jpg", "%EC%82%AC%EC%A7%84/4.jpg", "%EC%82%AC%EC%A7%84/5.jpg", "%EC%82%AC%EC%A7%84/6.jpg", "%EC%82%AC%EC%A7%84/7.jpg", "%EC%82%AC%EC%A7%84/8.jpg", "%EC%82%AC%EC%A7%84/9.jpg", "%EC%82%AC%EC%A7%84/12.jpg"];      // 사진 경로 (없는 칸은 임시 그림)
-const NAMES = ["1.jpg", "1.5.jpg", "2.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg", "7.jpg", "8.jpg", "9.jpg", "12.jpg"];        // 사진 파일 이름 (확인용 표시)
-const SHOW_NAME = false;
-const TABLE = ["# 길 순서: 한 줄 = 사진 한 장 ('사진' 폴더의 파일 이름 순서와 같아야 해요)", "# 형식:  방향 | 문구", "# 방향:  직진, 좌회전, 우회전, 직좌(앞으로 가다 왼쪽), 직우(앞으로 가다 오른쪽), 도착, 빼기", "#        '빼기' 줄은 그 사진과 함께 화면에서 빠져요. 줄을 지우지 말고 '빼기' 로 바꾸세요. (순서가 안 밀려요)", "# 간판을 깜빡이게:  방향 | 문구 | 표시 위치   (PC 화면에서 E 키 → 사진 위를 끌면 숫자가 나와요)", "# 고친 뒤 저장하고 길안내.py 를 다시 실행하세요. (# 으로 시작하는 줄은 무시)", "직진 | 자동문을 통과하세요 | | 56.4,96 55,85.8 52.7,76.4 44.4,72.5 39,70", "직진 | 화면의 화살표를 따라가세요 | | 55.6,92 43.7,83.1 38.8,76.1 40.1,68.5 42.1,62.6 41.8,57.1 37.9,54.4", "직진 | 우체국을 지나쳐가세요 | | 54.7,94.8 53.3,84.1 51.9,74.6 50.1,67.2 48.8,62.7", "직우 | 연결통로를 따라 가세요 | 26.7,39.5,62.2,40,62.2,44.1,26.7,43.6 | 45.8,94.4 46.5,85.1 54.6,80.8 67,80.3 77.2,79.8", "직좌 | 통로를 지나 본관방향으로 가세요 | 32.8,40.3,44.4,40.3,44.4,44.5,32.8,44.4 | 53.2,92 52.9,83.7 52.9,76.4 52.7,70.8 52,66.3 48,64.2 41.6,62.9 37.4,62.7", "직진 | 직진하세요 | | 59.5,91.8 54.4,81.2 47.8,73.4 40.6,67.6 34.9,63.8 30.1,59.1", "직진 | 화살표를 따라 직진하세요 | | 50.2,93.6 48.3,81.7 46.3,69.1 44.1,59.8 43.8,56.8", "직진 | 린넨실과 노동조합을따라  지나 직진하세요 | | 39.5,90.1 40.3,73.5 40.2,62.9 40.5,56", "직좌 | 사거리에서 왼쪽으로 꺾으세요 | | 47,90.9 50.2,77.2 51.2,68 47.9,61.6 39.3,58.9 29.2,57.6", "직진 | 화면의 화살표를 따라 왼쪽으로 들어가세요 | 24.3,29.8,43.1,32.9,43.1,35.9,24.3,33.5 / 49.7,32.4,77.1,31.6,77.2,35.7,49.8,36.5 | 53.3,93.6 54,83.7 54.5,74.3 54.2,67 47.4,63.3 37.7,60.9 31.2,59.1", "도착 | 도착입니다. 치료 잘받으세요!"];        // 길순서.txt 줄 전체 (PC 화면의 '전체 복사' 용)
-const SRC = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];            // 화면마다 길순서.txt 의 몇 번째 줄인지 (0부터)
+/* 파이썬이 채워 넣는 값: 목적지 전부. 주소 뒤 ?to=번호 로 목적지를 고른다 (없으면 기본 목적지) */
+const DATA = {"def": "1", "settings": {"capPx": 28, "capColor": "#FFE14D", "capTop": 14.0, "lineOnly": true, "site": "https://snuhoncology.github.io/RT-guide/"}, "dests": [{"id": "1", "name": "방사선치료센터 1,2치료실", "steps": [{"photo": "1.jpg", "dir": "straight", "cap": "자동문을 통과하세요", "marks": [], "paths": [[[56.4, 96.0], [55.0, 85.8], [52.7, 76.4], [44.4, 72.5], [39.0, 70.0]]], "v": 1792115200}, {"photo": "1.5.jpg", "dir": "straight", "cap": "화면의 화살표를 따라가세요", "marks": [], "paths": [[[55.6, 92.0], [43.7, 83.1], [38.8, 76.1], [40.1, 68.5], [42.1, 62.6], [41.8, 57.1], [37.9, 54.4]]], "v": 1792541108}, {"photo": "2.jpg", "dir": "straight", "cap": "우체국을 지나쳐가세요", "marks": [], "paths": [[[54.7, 94.8], [53.3, 84.1], [51.9, 74.6], [50.1, 67.2], [48.8, 62.7]]], "v": 1792115279}, {"photo": "3.jpg", "dir": "sright", "cap": "연결통로를 따라 가세요", "marks": [[26.7, 39.5, 62.2, 40.0, 62.2, 44.1, 26.7, 43.6]], "paths": [[[45.8, 94.4], [46.5, 85.1], [54.6, 80.8], [67.0, 80.3], [77.2, 79.8]]], "v": 1792115305}, {"photo": "4.jpg", "dir": "sleft", "cap": "통로를 지나 본관방향으로 가세요", "marks": [[32.8, 40.3, 44.4, 40.3, 44.4, 44.5, 32.8, 44.4]], "paths": [[[53.2, 92.0], [52.9, 83.7], [52.9, 76.4], [52.7, 70.8], [52.0, 66.3], [48.0, 64.2], [41.6, 62.9], [37.4, 62.7]]], "v": 1792115336}, {"photo": "5.jpg", "dir": "straight", "cap": "직진하세요", "marks": [], "paths": [[[59.5, 91.8], [54.4, 81.2], [47.8, 73.4], [40.6, 67.6], [34.9, 63.8], [30.1, 59.1]]], "v": 1792115361}, {"photo": "6.jpg", "dir": "straight", "cap": "화살표를 따라 직진하세요", "marks": [], "paths": [[[50.2, 93.6], [48.3, 81.7], [46.3, 69.1], [44.1, 59.8], [43.8, 56.8]]], "v": 1792115382}, {"photo": "7.jpg", "dir": "straight", "cap": "린넨실과 노동조합을따라  지나 직진하세요", "marks": [], "paths": [[[39.5, 90.1], [40.3, 73.5], [40.2, 62.9], [40.5, 56.0]]], "v": 1792115403}, {"photo": "8.jpg", "dir": "sleft", "cap": "사거리에서 왼쪽으로 꺾으세요", "marks": [], "paths": [[[47.0, 90.9], [50.2, 77.2], [51.2, 68.0], [47.9, 61.6], [39.3, 58.9], [29.2, 57.6]]], "v": 1792115427}, {"photo": "9.jpg", "dir": "straight", "cap": "화면의 화살표를 따라 왼쪽으로 들어가세요", "marks": [[24.3, 29.8, 43.1, 32.9, 43.1, 35.9, 24.3, 33.5], [49.7, 32.4, 77.1, 31.6, 77.2, 35.7, 49.8, 36.5]], "paths": [[[53.3, 93.6], [54.0, 83.7], [54.5, 74.3], [54.2, 67.0], [47.4, 63.3], [37.7, 60.9], [31.2, 59.1]]], "v": 1792115453}, {"photo": "12.jpg", "dir": "arrive", "cap": "도착입니다. 치료 잘받으세요!", "marks": [], "paths": [], "v": 1792115483}]}, {"id": "2", "name": "방사선치료센터 3,5치료실", "steps": [{"photo": "1.jpg", "dir": "straight", "cap": "자동문을 통과하세요", "marks": [], "paths": [[[56.4, 96.0], [55.0, 85.8], [52.7, 76.4], [44.4, 72.5], [39.0, 70.0]]], "v": 1792115200}, {"photo": "1.5.jpg", "dir": "straight", "cap": "화면의 화살표를 따라가세요", "marks": [], "paths": [[[55.6, 92.0], [43.7, 83.1], [38.8, 76.1], [40.1, 68.5], [42.1, 62.6], [41.8, 57.1], [37.9, 54.4]]], "v": 1792541108}, {"photo": "2.jpg", "dir": "straight", "cap": "우체국을 지나쳐가세요", "marks": [], "paths": [[[54.7, 94.8], [53.3, 84.1], [51.9, 74.6], [50.1, 67.2], [48.8, 62.7]]], "v": 1792115279}, {"photo": "3.jpg", "dir": "sright", "cap": "연결통로를 따라 가세요", "marks": [[26.7, 39.5, 62.2, 40.0, 62.2, 44.1, 26.7, 43.6]], "paths": [[[45.8, 94.4], [46.5, 85.1], [54.6, 80.8], [67.0, 80.3], [77.2, 79.8]]], "v": 1792115305}, {"photo": "4.jpg", "dir": "sleft", "cap": "통로를 지나 본관방향으로 가세요", "marks": [[32.8, 40.3, 44.4, 40.3, 44.4, 44.5, 32.8, 44.4]], "paths": [[[53.2, 92.0], [52.9, 83.7], [52.9, 76.4], [52.7, 70.8], [52.0, 66.3], [48.0, 64.2], [41.6, 62.9], [37.4, 62.7]]], "v": 1792115336}, {"photo": "5.jpg", "dir": "straight", "cap": "직진하세요", "marks": [], "paths": [[[59.5, 91.8], [54.4, 81.2], [47.8, 73.4], [40.6, 67.6], [34.9, 63.8], [30.1, 59.1]]], "v": 1792115361}, {"photo": "6.jpg", "dir": "straight", "cap": "화살표를 따라 직진하세요", "marks": [], "paths": [[[50.2, 93.6], [48.3, 81.7], [46.3, 69.1], [44.1, 59.8], [43.8, 56.8]]], "v": 1792115382}, {"photo": "7.jpg", "dir": "straight", "cap": "린넨실과 노동조합을따라  지나 직진하세요", "marks": [], "paths": [[[39.5, 90.1], [40.3, 73.5], [40.2, 62.9], [40.5, 56.0]]], "v": 1792115403}, {"photo": "8.jpg", "dir": "sleft", "cap": "사거리에서 왼쪽으로 꺾으세요", "marks": [], "paths": [[[47.0, 90.9], [50.2, 77.2], [51.2, 68.0], [47.9, 61.6], [39.3, 58.9], [29.2, 57.6]]], "v": 1792115427}, {"photo": "9.jpg", "dir": "straight", "cap": "1,2치료실을 지나 직진하세요", "marks": [[50.1, 31.7, 76.1, 36.8]], "paths": [[[31.8, 87.6], [45.7, 74.3], [54.3, 66.5], [64.8, 59.6], [70.0, 56.8]]], "v": 1792115453}, {"photo": "1000033748_2.jpg", "dir": "straight", "cap": "엘레베이터 타는곳을 지나가세요", "marks": [[66.5, 34.5, 72.9, 40.9]], "paths": [[[50.2, 92.6], [50.9, 79.5], [51.8, 70.5], [52.2, 61.8], [52.3, 57.4], [52.6, 55.0]]], "v": 1793680576}, {"photo": "20261103_125926_2.jpg", "dir": "sleft", "cap": "3,5,6 치료실 간판을 따라 왼쪽으로 들어가세요", "marks": [[28.2, 27.4, 74.1, 33.4]], "paths": [[[58.2, 93.4], [56.8, 84.4], [50.8, 77.6], [42.9, 74.1], [31.2, 72.9], [21.8, 72.4]]], "v": 1793680718}, {"photo": "20261103_130051.jpg", "dir": "straight", "cap": "도착하였습니다.      치료 잘 받으세요!", "marks": [], "paths": [], "v": 1793680325}]}, {"id": "5", "name": "방사선 종양학과 7,8,9 치료실", "steps": [{"photo": "1.jpg", "dir": "straight", "cap": "자동문을 통과하세요", "marks": [], "paths": [[[56.4, 96.0], [55.0, 85.8], [52.7, 76.4], [44.4, 72.5], [39.0, 70.0]]], "v": 1792115200}, {"photo": "1.5.jpg", "dir": "straight", "cap": "화면의 화살표를 따라가세요", "marks": [], "paths": [[[55.6, 92.0], [43.7, 83.1], [38.8, 76.1], [40.1, 68.5], [42.1, 62.6], [41.8, 57.1], [37.9, 54.4]]], "v": 1792541108}, {"photo": "2.jpg", "dir": "straight", "cap": "우체국을 지나쳐가세요", "marks": [], "paths": [[[54.7, 94.8], [53.3, 84.1], [51.9, 74.6], [50.1, 67.2], [48.8, 62.7]]], "v": 1792115279}, {"photo": "3.jpg", "dir": "sright", "cap": "연결통로를 따라 가세요", "marks": [[26.7, 39.5, 62.2, 40.0, 62.2, 44.1, 26.7, 43.6]], "paths": [[[45.8, 94.4], [46.5, 85.1], [54.6, 80.8], [67.0, 80.3], [77.2, 79.8]]], "v": 1792115305}, {"photo": "4.jpg", "dir": "sleft", "cap": "통로를 지나 본관방향으로 가세요", "marks": [[32.8, 40.3, 44.4, 40.3, 44.4, 44.5, 32.8, 44.4]], "paths": [[[53.2, 92.0], [52.9, 83.7], [52.9, 76.4], [52.7, 70.8], [52.0, 66.3], [48.0, 64.2], [41.6, 62.9], [37.4, 62.7]]], "v": 1792115336}, {"photo": "5.jpg", "dir": "straight", "cap": "직진하세요", "marks": [], "paths": [[[59.5, 91.8], [54.4, 81.2], [47.8, 73.4], [40.6, 67.6], [34.9, 63.8], [30.1, 59.1]]], "v": 1792115361}, {"photo": "6.jpg", "dir": "straight", "cap": "화살표를 따라 직진하세요", "marks": [], "paths": [[[50.2, 93.6], [48.3, 81.7], [46.3, 69.1], [44.1, 59.8], [43.8, 56.8]]], "v": 1792115382}, {"photo": "7.jpg", "dir": "straight", "cap": "린넨실과 노동조합을따라  지나 직진하세요", "marks": [], "paths": [[[39.5, 90.1], [40.3, 73.5], [40.2, 62.9], [40.5, 56.0]]], "v": 1792115403}, {"photo": "8.jpg", "dir": "sleft", "cap": "사거리에서 왼쪽으로 꺾으세요", "marks": [], "paths": [[[47.0, 90.9], [50.2, 77.2], [51.2, 68.0], [47.9, 61.6], [39.3, 58.9], [29.2, 57.6]]], "v": 1792115427}, {"photo": "9.jpg", "dir": "straight", "cap": "1,2치료실을 지나 직진하세요", "marks": [[50.1, 31.7, 76.1, 36.8]], "paths": [[[31.8, 87.6], [45.7, 74.3], [54.3, 66.5], [64.8, 59.6], [70.0, 56.8]]], "v": 1792115453}, {"photo": "1000033748_2.jpg", "dir": "straight", "cap": "엘레베이터 타는곳을 지나가세요", "marks": [[66.5, 34.5, 72.9, 40.9]], "paths": [[[50.2, 92.6], [50.9, 79.5], [51.8, 70.5], [52.2, 61.8], [52.3, 57.4], [52.6, 55.0]]], "v": 1793680576}, {"photo": "20261103_125926_2.jpg", "dir": "straight", "cap": "3,5,6 치료실을 지나 직진하세요", "marks": [[28.2, 27.4, 74.1, 33.4]], "paths": [[[47.7, 94.5], [47.9, 81.9], [48.6, 70.9], [50.3, 59.9], [53.8, 54.3]]], "v": 1793680718}, {"photo": "20261103_130143_2.jpg", "dir": "straight", "cap": "사거리에서 의생명연구원 방향으로 직진하세요", "marks": [[63.0, 28.8, 89.3, 37.2]], "paths": [[[47.5, 94.9], [47.5, 80.8], [48.9, 69.1], [53.9, 59.5]]], "v": 1793681755}, {"photo": "20261103_130218.jpg", "dir": "straight", "cap": "병리과를 지나 직진하세요", "marks": [[15.8, 22.1, 42.4, 28.2]], "paths": [[[63.9, 92.8], [61.2, 75.7], [59.1, 65.0], [57.1, 57.6]]], "v": 1793681826}, {"photo": "20261103_130240.jpg", "dir": "right", "cap": "7,8,9,10치료실 화살표를 따라 들어가세요", "marks": [[32.2, 25.7, 72.4, 31.3]], "paths": [[[49.4, 94.8], [49.7, 85.7], [54.8, 78.0], [63.6, 73.7], [74.6, 71.2], [78.7, 69.3]]], "v": 1793681834}, {"photo": "20261103_130303.jpg", "dir": "straight", "cap": "도착하였습니다. 치료 잘받으세요!", "marks": [], "paths": [], "v": 1793681721}]}]};   // { def, settings, dests: [{ id, name, steps: [{ photo, dir, cap, marks, paths }] }] }
+const PHOTO_DIR = "사진";
+const QS = new URLSearchParams(location.search);
+const EDIT = QS.has('edit') && window.parent !== window;   // 편집기 안의 미리보기
+let DEST = DATA.dests.find(d => d.id === QS.get('to')) || DATA.dests.find(d => d.id === DATA.def) || DATA.dests[0] || { id: '', name: '', steps: [] };
+let LINE_ONLY = true;     // 길 선이 있으면 바닥 화살표 숨기기 (설정에서 바뀜)
 
 const LOCK_MS = 500;   // 한 장 넘긴 뒤 터치를 무시하는 시간
 const MOVE_MS = 420;   // 넘어가는 효과 길이
 
-const N = ROUTE.length;
+// 사진마다: 방향, 위쪽 문구, 깜빡일 곳(사진 크기 대비 %), 바닥 길 선(가까운 곳부터 %), 사진 주소
+let ROUTE = [], CAPTIONS = [], MARKS = [], PATHS = [], PHOTOS = [], NAMES = [], N = 0;
+const photoUrl = (name, v) => PHOTO_DIR.split('/').map(encodeURIComponent).join('/') + '/' + encodeURIComponent(name) + (v ? '?v=' + v : '');
+function setSteps(steps, vers) {
+  ROUTE = steps.map(s => s.dir || 'straight');
+  CAPTIONS = steps.map(s => s.cap || '');
+  MARKS = steps.map(s => (s.marks || []).map(m => m.slice()));
+  PATHS = steps.map(s => (s.paths || []).map(l => l.map(p => p.slice())));
+  NAMES = steps.map(s => s.photo || '');
+  PHOTOS = steps.map(s => s.photo ? photoUrl(s.photo, (vers && vers[s.photo]) || s.v) : '');
+  N = ROUTE.length;
+  made.clear();
+}
+function applySettings(st) {
+  st = st || {};
+  const px = +st.capPx || 28, root = document.documentElement.style;
+  root.setProperty('--cap-size', `min(${px}px, ${(px / 3.9).toFixed(2)}vw)`);
+  root.setProperty('--cap-top', (+st.capTop || 20) + '%');
+  if (st.capColor) root.setProperty('--cap-ink', st.capColor);
+  LINE_ONLY = st.lineOnly !== false;
+}
+
 const SAY = { straight: '직진', left: '왼쪽으로', right: '오른쪽으로', sleft: '앞으로 가다 왼쪽으로', sright: '앞으로 가다 오른쪽으로', arrive: '도착' };
-const WORD = { straight: '직진', left: '좌회전', right: '우회전', sleft: '직진→좌회전', sright: '직진→우회전', arrive: '도착' };
 const hasNext = i => i < N - 1 && ROUTE[i] !== 'arrive';
 
 const $ = id => document.getElementById(id);
 const el = {
-  stage: $('stage'), bar: $('bar'), cur: $('cur'), tot: $('tot'), fname: $('fname'), cap: $('cap'),
+  stage: $('stage'), cur: $('cur'), tot: $('tot'), dest: $('dest'), cap: $('cap'), empty: $('empty'),
   main: $('mainArrow'), goal: $('goal'), ground: $('ground'), seek: $('seek'), segs: $('segs'), seekTip: $('seekTip'),
   next: $('nextBtn'), prev: $('backBtn'), arrive: $('arrive'), hint: $('hint'), live: $('live'),
-  marks: $('marks'), paths: $('paths'), editbox: $('editbox'), editOut: $('editOut'), editStep: $('editStep'),
-  editTip: $('editTip'), modePath: $('modePath'), modeMarks: $('modeMarks'), editMove: $('editMove'),
-  editUndo: $('editUndo'), editClear: $('editClear'), editCopy: $('editCopy'), editCopyAll: $('editCopyAll'),
+  marks: $('marks'), paths: $('paths'),
 };
 const shots = [$('shotA'), $('shotB')];
 let front = 0;
@@ -521,16 +504,16 @@ function preload(i) {
 
 /* ── 화면 갱신 ── */
 function render() {
+  el.empty.hidden = N > 0;
+  el.dest.hidden = !DEST.name;
+  el.dest.textContent = DEST.name ? DEST.name + ' 가는 길' : '';
+  if (!N) { el.cap.hidden = true; el.next.hidden = true; el.prev.hidden = true; el.arrive.hidden = true; return; }
   const i = state.i, dir = ROUTE[i], more = hasNext(i), caption = CAPTIONS[i] || '';
   el.cur.textContent = i + 1;
   el.tot.textContent = N;
   paintSegs();
   el.cap.textContent = caption;
   el.cap.hidden = !caption;
-  if (SHOW_NAME) {
-    el.fname.hidden = false;
-    el.fname.textContent = `${NAMES[i] || '임시 그림'} · ${WORD[dir]}`;
-  }
   const lineOnly = lineOnlyAt(i);
   el.hint.innerHTML = lineOnly ? '바닥의 파란 길을 누르면<br>다음 사진으로 넘어가요' : '바닥의 화살표를 누르면<br>다음 사진으로 넘어가요';
   el.prev.hidden = i === 0;
@@ -564,7 +547,6 @@ function render() {
   shots[front].alt = `${i + 1}번째 길 사진`;
   el.live.textContent = `${i + 1}번째 사진. ${caption || (more ? SAY[dir] : '도착')}`;
   drawMarks();
-  if (edit.on) updateEdit();
 }
 
 /* ── 넘어가기 ── */
@@ -611,15 +593,17 @@ async function go(delta) {
 
   front = 1 - front;
   state.i = to;
-  edit.drag = null;   // 그리던 것은 사진마다 따로 남아 있다 (돌아오면 그대로)
+  edit.drag = null; edit.sel = -1;
   render();
   el.stage.classList.remove('fading');
   remember();
   preload(to);
+  if (EDIT) tellEditor({ type: 'at', i: to });
 
   const left = LOCK_MS - (performance.now() - t0);
   if (left > 0) await wait(left);
   state.lock = false;
+  if (pending) { const m = pending; pending = null; onEditorMessage(m); }   // 넘어가는 동안 온 편집기 내용
 }
 
 /* ── 안내 말풍선, 화살표 흔들기 ── */
@@ -658,11 +642,13 @@ async function keepAwake() {
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && state.moved) keepAwake(); });
 
-const KEY = 'route-step';
+const KEY = 'route-step:' + DEST.id;   // 목적지마다 따로 기억
 function remember() {
+  if (EDIT) return;
   try { sessionStorage.setItem(KEY, JSON.stringify({ i: state.i, n: N, t: Date.now() })); } catch (e) { /* 없어도 된다 */ }
 }
 function restore() {
+  if (EDIT) return;
   try {
     const s = JSON.parse(sessionStorage.getItem(KEY) || 'null');
     if (s && s.n === N && Date.now() - s.t < 30 * 60 * 1000 && s.i >= 0 && s.i < N) state.i = s.i;
@@ -671,21 +657,10 @@ function restore() {
 
 /* ── 사진 속 간판 깜빡임 ── */
 const SVGNS = 'http://www.w3.org/2000/svg';
-// PC E 키 화면: mode 'path'(길 선 점) / 'marks'(깜빡임 네모), drafts = 사진마다 고친 내용
-const edit = { on: false, mode: 'path', drag: null, drafts: new Map() };
-const draftOf = i => {
-  if (!edit.drafts.has(i)) edit.drafts.set(i, { marks: null, pts: null, rest: [] });
-  return edit.drafts.get(i);
-};
-function currentMarks(i) {
-  const d = edit.drafts.get(i);
-  return d && d.marks ? d.marks : (MARKS[i] || []);
-}
-function currentPaths(i) {
-  const d = edit.drafts.get(i);
-  if (!d || !d.pts) return PATHS[i] || [];
-  return d.pts.length >= 2 ? [d.pts, ...d.rest] : d.rest;
-}
+// 편집기 안 미리보기의 그리기 도구: mode 'path'(길 선 점) / 'marks'(깜빡임 네모) / 'mosaic'(모자이크 네모)
+const edit = { on: false, mode: 'path', drag: null, sel: -1 };
+const currentMarks = i => MARKS[i] || [];
+const currentPaths = i => (PATHS[i] || []).filter(l => l.length >= 2);
 const lineOnlyAt = i => LINE_ONLY && currentPaths(i).length > 0;
 function polygon(m, W, H, cls) {
   const pts = m.length === 4
@@ -769,10 +744,9 @@ function drawPaths(W, H) {
   }
   if (edit.on && edit.mode === 'path') drawHandles(W, H);
 }
-/* E 키 화면: 길 선의 점마다 번호 동그라미 (끌어서 옮길 수 있다) */
+/* 편집기: 길 선의 점마다 번호 동그라미 (끌어서 옮기고, 두 번 누르면 지운다) */
 function drawHandles(W, H) {
-  const d = edit.drafts.get(state.i);
-  const pts = d && d.pts ? d.pts : ((PATHS[state.i] || [])[0] || []);
+  const pts = (PATHS[state.i] || [])[0] || [];
   const r = el.stage.getBoundingClientRect(), s = Math.max(r.width / W, r.height / H) || 1;
   pts.forEach(([x, y], k) => {
     const g = document.createElementNS(SVGNS, 'g');
@@ -795,8 +769,12 @@ function drawMarks() {
   if (!W || !H) { el.paths.textContent = ''; img.addEventListener('load', drawMarks, { once: true }); return; }
   drawPaths(W, H);
   el.marks.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  for (const m of currentMarks(state.i)) el.marks.appendChild(polygon(m, W, H, 'mark'));
-  if (edit.on && edit.drag && edit.drag.box) el.marks.appendChild(polygon(edit.drag.box, W, H, 'mark draft'));
+  currentMarks(state.i).forEach((m, k) => {
+    el.marks.appendChild(polygon(m, W, H, edit.on && edit.mode === 'marks' && k === edit.sel ? 'mark sel' : 'mark'));
+  });
+  if (edit.on && edit.drag && edit.drag.box) {
+    el.marks.appendChild(polygon(edit.drag.box, W, H, edit.mode === 'mosaic' ? 'mark mosaic' : 'mark draft'));
+  }
   placeCaption();
 }
 /* 깜빡이는 간판을 문구 상자가 가리면, 상자를 간판 위로 올린다.
@@ -825,8 +803,10 @@ window.addEventListener('resize', () => render());
 
 /* ── 위 순서 막대: 칸을 누르거나 끌어서 원하는 사진으로 바로 가기 ── */
 const seek = { id: null, aim: -1 };
-for (let k = 0; k < N; k++) el.segs.appendChild(document.createElement('i'));
-el.seek.setAttribute('aria-valuemax', String(N));
+function buildSegs() {
+  el.segs.replaceChildren(...Array.from({ length: N }, () => document.createElement('i')));
+  el.seek.setAttribute('aria-valuemax', String(N));
+}
 function paintSegs() {   // 끄는 동안에는 손가락 자리까지 채워서 보여 준다
   const dragging = seek.id !== null && seek.aim >= 0, at = dragging ? seek.aim : state.i;
   [...el.segs.children].forEach((s, k) => {
@@ -872,14 +852,8 @@ el.seek.addEventListener('pointerup', e => endSeek(e, true));
 el.seek.addEventListener('pointercancel', e => endSeek(e, false));
 el.seek.addEventListener('click', e => e.stopPropagation());
 
-/* ── PC에서 E 키: 사진 위에 길 선(점 찍기)·깜빡임(네모 끌기)을 그리고 길순서.txt 줄로 복사 ── */
-const DIR_WORD = { straight: '직진', left: '좌회전', right: '우회전', sleft: '직좌', sright: '직우', arrive: '도착' };
-const TIP = {
-  path: '바닥을 따라 <b>가까운 곳(아래)부터</b> 먼 곳으로 차례로 클릭하세요. 점은 끌어서 옮길 수 있어요.',
-  marks: '사진 위를 끌어서 깜빡일 간판을 네모로 둘러싸세요.',
-  copied: '복사했어요 → 메모장으로 연 길순서.txt 에서 <b>Ctrl+A, Ctrl+V</b> → 저장 → 길안내.py 다시 실행',
-  failed: '복사가 안 됐어요. 한 번 더 눌러 보세요.',
-};
+/* ── 편집기와 주고받기 (편집기 안의 미리보기에서만 쓰인다) ──
+   편집기가 목적지 내용(load)을 보내 주면 그대로 그리고, 사진 위에 그린 것은 바로 편집기로 돌려보낸다. */
 function photoBox() {   // 사진이 화면에 실제로 놓인 자리 (cover 로 잘린 만큼 포함)
   const img = shots[front], W = img.naturalWidth || 1, H = img.naturalHeight || 1;
   const r = el.stage.getBoundingClientRect(), s = Math.max(r.width / W, r.height / H);
@@ -893,63 +867,90 @@ function fromPct(x, y) {
   const b = photoBox();
   return [b.left + x / 100 * b.W * b.s, b.top + y / 100 * b.H * b.s];
 }
-const fmt = v => String(Math.round(v * 10) / 10);
-function lineText(i) {   // 길순서.txt 에 들어갈 이 사진의 줄 전체
-  const mt = currentMarks(i).map(m => m.map(fmt).join(',')).join(' / ');
-  const pt = currentPaths(i).map(l => l.map(([x, y]) => fmt(x) + ',' + fmt(y)).join(' ')).join(' / ');
-  let s = (DIR_WORD[ROUTE[i]] || '직진') + ' | ' + (CAPTIONS[i] || '');
-  if (mt || pt) s += ' |' + (mt ? ' ' + mt : '');
-  if (pt) s += ' | ' + pt;
-  return s;
-}
-const isEdited = i => { const d = edit.drafts.get(i); return !!d && !!(d.marks || d.pts); };
-function fileText() {    // 길순서.txt 전체: 고친 사진의 줄만 바꾸고 나머지(# 줄, 빼기 줄)는 그대로
-  const lines = TABLE.slice();
-  for (let i = 0; i < N; i++) if (isEdited(i) && SRC[i] != null && SRC[i] < lines.length) lines[SRC[i]] = lineText(i);
-  return lines.join('\r\n') + '\r\n';
-}
-let tipTimer = 0;
-function updateEdit() {
-  if (!edit.on) return;
-  const i = state.i;
-  el.editStep.textContent = i + 1;
-  el.modePath.setAttribute('aria-pressed', String(edit.mode === 'path'));
-  el.modeMarks.setAttribute('aria-pressed', String(edit.mode === 'marks'));
-  if (!tipTimer) el.editTip.innerHTML = TIP[edit.mode];
-  el.editOut.value = lineText(i);
-  const n = Array.from({ length: N }, (_, k) => k).filter(isEdited).length;
-  if (!el.editCopyAll.dataset.flash) el.editCopyAll.textContent = n ? `전체 복사 (${n})` : '전체 복사';
-}
-function setEdit(on) {
-  edit.on = on; edit.drag = null;
+function tellEditor(msg) { if (EDIT) window.parent.postMessage(msg, location.origin); }
+let pending = null;     // 넘어가는 동안 온 편집기 내용 (끝나고 적용)
+function setTool(tool) {
+  const on = tool !== 'view' && N > 0;
+  if (on === edit.on && (!on || edit.mode === tool)) return;
+  edit.on = on;
+  if (on) edit.mode = tool;
+  edit.drag = null; edit.sel = -1;
   el.stage.classList.toggle('editing', on);
-  el.editbox.hidden = !on;
   hideHint();
-  render();   // 화살표·길 선·문구를 다시 그리고 상자 내용도 채운다
 }
-function touchMarks(d, i) { if (!d.marks) d.marks = (MARKS[i] || []).map(m => m.slice()); }
-function touchPath(d, i) {
-  if (d.pts) return;
-  const lines = PATHS[i] || [];
-  d.pts = (lines[0] || []).map(p => p.slice());
-  d.rest = lines.slice(1);
+async function showStep(i) {
+  state.i = Math.max(0, Math.min(N - 1, i | 0));
+  if (N) {
+    const img = shots[front], want = srcFor(state.i);
+    if (img.getAttribute('src') !== want) await load(img, state.i);
+  }
+  render();
+  if (N) preload(state.i);
 }
+function onEditorMessage(m) {
+  if (!m || m.type !== 'load') return;
+  if (state.lock) { pending = m; return; }
+  const sameStep = DEST.id === (m.dest && m.dest.id) && state.i === m.i;
+  if (m.dest) { DEST = m.dest; document.title = DEST.name ? DEST.name + ' 가는 길' : '찾아가는 길'; }
+  applySettings(m.settings);
+  setSteps(m.steps || [], m.vers);
+  if (el.segs.children.length !== N) buildSegs();
+  if (!sameStep) edit.sel = -1;
+  setTool(m.tool || 'view');
+  if (edit.sel >= currentMarks(m.i | 0).length) edit.sel = -1;
+  showStep(m.i | 0);
+}
+window.addEventListener('message', e => {
+  if (EDIT && e.source === window.parent && e.origin === location.origin) onEditorMessage(e.data);
+});
+
 const HANDLE_PX = 14;   // 이만큼 가까이 누르면 새 점 대신 있던 점을 옮긴다
+const r1 = v => Math.round(v * 10) / 10;
+function firstLine(i) {
+  if (!PATHS[i]) PATHS[i] = [];
+  if (!PATHS[i][0]) PATHS[i][0] = [];
+  return PATHS[i][0];
+}
+function sendPaths(i) {
+  PATHS[i] = (PATHS[i] || []).filter(l => l.length);
+  tellEditor({ type: 'paths', i, paths: PATHS[i].map(l => l.map(p => p.slice())) });
+}
+function sendMarks(i) { tellEditor({ type: 'marks', i, marks: (MARKS[i] || []).map(m => m.slice()) }); }
+function nearHandle(cx, cy) {
+  let k = -1, best = HANDLE_PX;
+  ((PATHS[state.i] || [])[0] || []).forEach(([x, y], n) => {
+    const [sx, sy] = fromPct(x, y), d = Math.hypot(sx - cx, sy - cy);
+    if (d <= best) { best = d; k = n; }
+  });
+  return k;
+}
+function inside([x, y], m) {
+  const pts = m.length === 4
+    ? [[m[0], m[1]], [m[2], m[1]], [m[2], m[3]], [m[0], m[3]]]
+    : [[m[0], m[1]], [m[2], m[3]], [m[4], m[5]], [m[6], m[7]]];
+  let c = false;
+  for (let a = 0, b = pts.length - 1; a < pts.length; b = a++) {
+    const [xa, ya] = pts[a], [xb, yb] = pts[b];
+    if ((ya > y) !== (yb > y) && x < (xb - xa) * (y - ya) / (yb - ya) + xa) c = !c;
+  }
+  return c;
+}
+function markAt(p) {    // 누른 곳의 깜빡임 네모 (나중에 그린 것부터)
+  const ms = currentMarks(state.i);
+  for (let k = ms.length - 1; k >= 0; k--) if (inside(p, ms[k])) return k;
+  return -1;
+}
 el.stage.addEventListener('pointerdown', e => {
-  if (!edit.on || e.target.closest('.editbox, .seek')) return;
+  if (!edit.on || !N || e.button > 0) return;
   const i = state.i, p = toPct(e.clientX, e.clientY);
   if (edit.mode === 'path') {
-    const d = draftOf(i);
-    touchPath(d, i);
-    let k = -1, best = HANDLE_PX;
-    d.pts.forEach(([x, y], n) => {
-      const [sx, sy] = fromPct(x, y), dist = Math.hypot(sx - e.clientX, sy - e.clientY);
-      if (dist <= best) { best = dist; k = n; }
-    });
-    if (k < 0) { d.pts.push(p); k = d.pts.length - 1; }
-    edit.drag = { id: e.pointerId, kind: 'pt', k };
+    const before = JSON.stringify(PATHS[i] || []);
+    const line = firstLine(i);
+    let k = nearHandle(e.clientX, e.clientY);
+    if (k < 0) { line.push(p); k = line.length - 1; }
+    edit.drag = { id: e.pointerId, kind: 'pt', k, before };
   } else {
-    edit.drag = { id: e.pointerId, kind: 'box', start: p, box: null };
+    edit.drag = { id: e.pointerId, kind: 'box', start: p, sx: e.clientX, sy: e.clientY, box: null };
   }
   try { el.stage.setPointerCapture(e.pointerId); } catch (err) { /* 없어도 된다 */ }
   e.preventDefault();
@@ -959,78 +960,56 @@ el.stage.addEventListener('pointermove', e => {
   if (!edit.drag || e.pointerId !== edit.drag.id) return;
   const p = toPct(e.clientX, e.clientY);
   if (edit.drag.kind === 'pt') {
-    draftOf(state.i).pts[edit.drag.k] = p;
+    firstLine(state.i)[edit.drag.k] = p;
   } else {
     const [x0, y0] = edit.drag.start;
     edit.drag.box = [Math.min(x0, p[0]), Math.min(y0, p[1]), Math.max(x0, p[0]), Math.max(y0, p[1])];
   }
   drawMarks();
-  updateEdit();
 });
 function endDrag(e) {
   if (!edit.drag || e.pointerId !== edit.drag.id) return;
-  const g = edit.drag;
+  const g = edit.drag, i = state.i;
   edit.drag = null;
-  if (g.kind === 'box' && g.box && g.box[2] - g.box[0] > 1 && g.box[3] - g.box[1] > 0.5) {
-    const d = draftOf(state.i);
-    touchMarks(d, state.i);
-    d.marks.push(g.box);
+  if (g.kind === 'pt') {
+    if (JSON.stringify(PATHS[i].filter(l => l.length)) !== g.before) sendPaths(i);
+  } else {
+    const moved = Math.hypot(e.clientX - g.sx, e.clientY - g.sy) > 5, b = g.box;
+    if (moved && b && b[2] - b[0] > 0.8 && b[3] - b[1] > 0.5) {
+      if (edit.mode === 'marks') {
+        MARKS[i] = [...currentMarks(i), b.map(r1)];
+        edit.sel = -1;
+        sendMarks(i);
+      } else {
+        tellEditor({ type: 'mosaic', i, photo: NAMES[i], rect: b.map(r1) });
+      }
+    } else if (edit.mode === 'marks') {   // 끌지 않고 누르기만 하면: 그 네모를 고른다
+      edit.sel = markAt(g.start);
+      tellEditor({ type: 'sel', i, k: edit.sel });
+    }
   }
   render();
 }
 el.stage.addEventListener('pointerup', endDrag);
 el.stage.addEventListener('pointercancel', endDrag);
-function undoEdit() {    // 하나 지우기: 길 선은 마지막 점, 깜빡임은 마지막 네모
-  const i = state.i, d = draftOf(i);
-  if (edit.mode === 'path') { touchPath(d, i); d.pts.pop(); }
-  else { touchMarks(d, i); d.marks.pop(); }
+el.stage.addEventListener('dblclick', e => {   // 길 선 점을 두 번 누르면 지운다
+  if (!edit.on || edit.mode !== 'path') return;
+  const k = nearHandle(e.clientX, e.clientY), line = (PATHS[state.i] || [])[0];
+  if (k < 0 || !line) return;
+  line.splice(k, 1);
+  sendPaths(state.i);
   render();
-}
-function clearEdit() {   // 모두 지우기: 이 사진의 길 선(또는 깜빡임) 전부
-  const i = state.i, d = draftOf(i);
-  if (edit.mode === 'path') { d.pts = []; d.rest = []; }
-  else d.marks = [];
+});
+function deleteSelected() {
+  const i = state.i;
+  if (!edit.on || edit.mode !== 'marks' || edit.sel < 0 || !MARKS[i] || !MARKS[i][edit.sel]) return false;
+  MARKS[i].splice(edit.sel, 1);
+  edit.sel = -1;
+  sendMarks(i);
+  tellEditor({ type: 'sel', i, k: -1 });
   render();
+  return true;
 }
-function setMode(mode) { edit.mode = mode; clearTimeout(tipTimer); tipTimer = 0; render(); }
-el.modePath.addEventListener('click', () => setMode('path'));
-el.modeMarks.addEventListener('click', () => setMode('marks'));
-el.editMove.addEventListener('click', () => {
-  const low = el.editbox.classList.toggle('low');
-  el.editMove.textContent = low ? '▲' : '▼';
-  el.editMove.setAttribute('aria-label', low ? '이 상자를 위로' : '이 상자를 아래로');
-});
-el.editUndo.addEventListener('click', undoEdit);
-el.editClear.addEventListener('click', clearEdit);
-async function copyText(text) {
-  try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* 아래 방법으로 */ }
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;-webkit-user-select:text;user-select:text;';
-  document.body.appendChild(ta);
-  ta.select();
-  let ok = false;
-  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
-  ta.remove();
-  return ok;
-}
-function flash(btn, text) {
-  btn.dataset.flash = '1';
-  btn.textContent = text;
-  setTimeout(() => { delete btn.dataset.flash; if (btn === el.editCopy) btn.textContent = '이 줄 복사'; updateEdit(); }, 1600);
-}
-el.editCopy.addEventListener('click', async () => {
-  const ok = await copyText(lineText(state.i));
-  flash(el.editCopy, ok ? '복사됨' : 'Ctrl+C');
-  if (!ok) { el.editOut.focus(); el.editOut.select(); }
-});
-el.editCopyAll.addEventListener('click', async () => {
-  const ok = await copyText(fileText());
-  flash(el.editCopyAll, ok ? '복사됨' : '안 됨');
-  clearTimeout(tipTimer);
-  el.editTip.innerHTML = ok ? TIP.copied : TIP.failed;
-  tipTimer = setTimeout(() => { tipTimer = 0; updateEdit(); }, 9000);
-});
 
 /* ── 입력 ── */
 el.next.addEventListener('click', () => go(1));
@@ -1038,11 +1017,16 @@ el.prev.addEventListener('click', () => go(-1));
 el.paths.addEventListener('click', e => {   // 파란 길을 눌러도 다음 사진으로
   if (!edit.on && e.target.classList && e.target.classList.contains('route')) go(1);
 });
-el.stage.addEventListener('click', e => { if (!edit.on && !e.target.closest('button, .seek')) nudge(); });
+el.stage.addEventListener('click', e => { if (!edit.on && N && !e.target.closest('button, .seek')) nudge(); });
 document.addEventListener('keydown', e => {
-  if (e.target.closest && e.target.closest('input')) return;
-  if (edit.on && (e.ctrlKey || e.metaKey) && e.code === 'KeyZ') { e.preventDefault(); undoEdit(); return; }
-  if (e.code === 'KeyE' && !e.ctrlKey && !e.altKey && !e.metaKey) { e.preventDefault(); setEdit(!edit.on); return; }
+  if (e.target.closest && e.target.closest('input, textarea')) return;
+  if (EDIT && (e.ctrlKey || e.metaKey) && (e.code === 'KeyZ' || e.code === 'KeyY')) {   // 되돌리기는 편집기가 한다
+    e.preventDefault();
+    tellEditor({ type: e.code === 'KeyY' || e.shiftKey ? 'redo' : 'undo' });
+    return;
+  }
+  if (EDIT && (e.key === 'Delete' || e.key === 'Backspace') && deleteSelected()) { e.preventDefault(); return; }
+  if (!N) return;
   const onButton = e.target.closest && e.target.closest('button');
   if (onButton && (e.key === 'Enter' || e.key === ' ')) return;
   if (['ArrowRight', 'ArrowUp', 'PageDown', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); go(1); }
@@ -1050,13 +1034,18 @@ document.addEventListener('keydown', e => {
 });
 
 /* ── 시작 ── */
+applySettings(DATA.settings);
+setSteps(DEST.steps || []);
+buildSegs();
+document.title = DEST.name ? DEST.name + ' 가는 길' : '찾아가는 길';
 restore();
 shots[0].style.visibility = 'visible'; shots[0].style.zIndex = 2;
 shots[1].style.visibility = 'hidden'; shots[1].style.zIndex = 1;
-load(shots[0], state.i);
+if (N) load(shots[0], state.i);
 render();
-if (state.i === 0) showHint();
-preload(state.i);
+if (N && state.i === 0 && !EDIT) showHint();
+if (N) preload(state.i);
+if (EDIT) tellEditor({ type: 'ready' });
 </script>
 </body>
 </html>
